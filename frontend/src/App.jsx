@@ -11,6 +11,7 @@ import { useReports } from './hooks/useReports';
 import AuthModal from './components/AuthModal';
 import ReportModal from './components/ReportModal';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import GeoFeedDashboard from './components/GeoFeedDashboard';
 
 // Fix Default Leaflet icon issue
 let DefaultIcon = L.icon({
@@ -29,6 +30,7 @@ export default function App() {
   const [targetLocation, setTargetLocation] = useState(null);
   const [activeTab, setActiveTab] = useState('map');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [mapCenter, setMapCenter] = useState([16.0544, 108.2022]);
 
   // Initial load
   useEffect(() => {
@@ -36,8 +38,6 @@ export default function App() {
     fetchNearbyReports(16.0544, 108.2022, 2000); 
   }, [fetchNearbyReports]);
 
-  // Base config map overview Vietnam
-  const mapCenter = [16.0544, 108.2022];
   const defaultZoom = 6;
 
   // Remove mock tactical nodes since we fetch real ones now
@@ -61,6 +61,11 @@ export default function App() {
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const handleFeedClick = (lat, lng) => {
+    setMapCenter([lat, lng]);
+    setActiveTab('map');
   };
 
   return (
@@ -153,6 +158,7 @@ export default function App() {
                 />
                 <ZoomControl position="bottomright" />
 
+                <MapUpdater center={mapCenter} />
                 <MapClickHandler onMapClick={handleMapClick} />
                 
                 {reports.map((rep, idx) => (
@@ -224,14 +230,9 @@ export default function App() {
           <AnalyticsDashboard defaultLocation={targetLocation || { lat: mapCenter[0], lng: mapCenter[1] }} />
         )}
 
+        {/* RAW GEO FEED TAB */}
         {activeTab === 'feed' && (
-          <div className="flex-1 pt-24 pb-8 px-8 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <ActivitySquare size={48} className="mx-auto text-zinc-700" />
-              <h2 className="text-2xl font-bold text-zinc-300 tracking-wide uppercase">Raw Geo Feed</h2>
-              <p className="text-zinc-500 max-w-md mx-auto">Direct pipeline of all unauthenticated and automated sensor pings. Coming in Phase 6.</p>
-            </div>
-          </div>
+          <GeoFeedDashboard reports={reports} onRowClick={handleFeedClick} />
         )}
       </main>
 
@@ -257,6 +258,16 @@ function MapClickHandler({ onMapClick }) {
       onMapClick(e.latlng);
     },
   });
+  return null;
+}
+
+function MapUpdater({ center }) {
+  const map = useMapEvents({});
+  useEffect(() => {
+    if (center[0] !== 16.0544) {
+      map.flyTo(center, 15, { duration: 1.5 });
+    }
+  }, [center, map]);
   return null;
 }
 

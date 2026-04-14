@@ -44,11 +44,14 @@ async def lifespan(app: FastAPI):
     print("Da tao Geo Index (2dsphere) cho bang reports.")
 
     # Configure Cloudinary
-    if svc_settings.CLOUDINARY_CLOUD_NAME and svc_settings.CLOUDINARY_CLOUD_NAME != "my_cloud_name":
+    if (
+        svc_settings.CLOUDINARY_CLOUD_NAME
+        and svc_settings.CLOUDINARY_CLOUD_NAME != "my_cloud_name"
+    ):
         cloudinary.config(
             cloud_name=svc_settings.CLOUDINARY_CLOUD_NAME,
             api_key=svc_settings.CLOUDINARY_API_KEY,
-            api_secret=svc_settings.CLOUDINARY_API_SECRET
+            api_secret=svc_settings.CLOUDINARY_API_SECRET,
         )
         print("Đã config Cloudinary API.")
 
@@ -65,7 +68,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, set to proper origins
+    allow_origins=["*"],  # In production, set to proper origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -129,19 +132,25 @@ async def process_image_validation(report_id: str, image_url: str):
         except Exception as e:
             print(f"[{report_id}] Loi khi goi AI Service: {e}")
 
+
 @app.post("/reports/upload")
 async def upload_image(file: UploadFile = File(...)):
-    if not svc_settings.CLOUDINARY_CLOUD_NAME or svc_settings.CLOUDINARY_CLOUD_NAME == "my_cloud_name":
+    if (
+        not svc_settings.CLOUDINARY_CLOUD_NAME
+        or svc_settings.CLOUDINARY_CLOUD_NAME == "my_cloud_name"
+    ):
         import asyncio
+
         await asyncio.sleep(1.2)
         return {"image_url": "https://picsum.photos/500/300?random=backend_mock"}
-        
+
     try:
         contents = await file.read()
         response = cloudinary.uploader.upload(contents, resource_type="image")
         return {"image_url": response.get("secure_url")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi Upload Cloudinary: {str(e)}")
+
 
 @app.post("/reports", response_model=ReportResponse, status_code=201)
 async def create_report(report: ReportCreate, background_tasks: BackgroundTasks):
@@ -192,9 +201,10 @@ async def get_nearby_reports(
 ):
     try:
         from datetime import timedelta
+
         db = get_db()
         radius_meters = radius_km * 1000
-        
+
         time_threshold = datetime.now(timezone.utc) - timedelta(hours=hours_active)
 
         query = {
@@ -207,7 +217,7 @@ async def get_nearby_reports(
                     },
                     "$maxDistance": radius_meters,
                 }
-            }
+            },
         }
 
         cursor = db["reports"].find(query)
@@ -248,7 +258,8 @@ async def vote_report(report_id: str, vote_data: VoteCreate):
         )
 
         vote_increment = 1 if vote_data.is_upvote else -1
-        trust_increment = 2.0 if vote_data.is_upvote else -2.0
+        # [TESTING MODE] Đã buff điểm để 1 lượt Upvote có sức sát thương +20 điểm (Lên Verified liền tay)
+        trust_increment = 20.0 if vote_data.is_upvote else -10.0
 
         report = await db["reports"].find_one({"_id": ObjectId(report_id)})
         if not report:
