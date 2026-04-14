@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Realtime Test</h2>
+
+<script>
+let ws = new WebSocket("ws://localhost:8003/ws");
+
+ws.onopen = () => {
+  console.log("✅ Connected to WebSocket");
+};
+
+ws.onmessage = (event) => {
+  console.log("📩 Nhận realtime:", event.data);
+};
+
+ws.onerror = (err) => {
+  console.error("❌ WS Error:", err);
+};
+</script>
+
+</body>
+</html>
