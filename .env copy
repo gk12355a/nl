@@ -1,0 +1,26 @@
+# URL cua cac Microservices (Dung cho Proxy va Giao tiep noi bo)
+REPORT_SERVICE_URL=http://localhost:8002
+WEBSOCKET_GATEWAY_URL=http://localhost:8003
+AI_SERVICE_URL=http://localhost:8004
+WEATHER_SERVICE_URL=http://localhost:8005
+ACCOUNT_SERVICE_URL=http://localhost:8006
+AUTH_SERVICE_URL=http://localhost:8007
+
+# Database Configuration
+MONGO_URI=mongodb://admin:123456@192.168.23.60:27017/?authSource=admin
+MONGO_DB_NAME=nl_flood_db
+
+# ==========================================
+# 4. CLOUDINARY CONFIG (Cho Report Service upload anh)
+# ==========================================
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Cache & Rate Limit Configuration (Redis)
+REDIS_URL=redis://192.168.23.60:6379/0
+
+# Used MongoDB for Users/Auth
+
+# Security origins separated by commas
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,*
