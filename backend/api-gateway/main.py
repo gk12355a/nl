@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import httpx
 import os
@@ -14,7 +15,8 @@ from fastapi_limiter.depends import RateLimiter
 # 1. Quản lý cấu hình (SRP)
 class Settings(BaseSettings):
     REDIS_URL: str
-    USER_SERVICE_URL: str
+    ACCOUNT_SERVICE_URL: str
+    AUTH_SERVICE_URL: str
     REPORT_SERVICE_URL: str
     AI_SERVICE_URL: str
     WEATHER_SERVICE_URL: str
@@ -56,6 +58,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# 2.5 Setup CORS cho Toàn Giao diện API Gateway
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
@@ -68,7 +79,8 @@ def get_target_url(service_name: str, path: str) -> str:
         "report": settings.REPORT_SERVICE_URL,
         "weather": settings.WEATHER_SERVICE_URL,
         "ai": settings.AI_SERVICE_URL,
-        "user": settings.USER_SERVICE_URL,
+        "account": settings.ACCOUNT_SERVICE_URL,
+        "auth": settings.AUTH_SERVICE_URL,
     }
     base_url = services.get(service_name)
     if not base_url:
@@ -77,11 +89,11 @@ def get_target_url(service_name: str, path: str) -> str:
 
 
 # 4. API Proxy Controller với Rate Limiting
-# Giới hạn: 5 requests / 60 giây (Cho mỗi IP)
+# Giới hạn: 100 requests / 60 giây (Cho mỗi IP)
 @app.api_route(
     "/{service_name}/{path:path}",
     methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-    dependencies=[Depends(RateLimiter(times=5, seconds=60))],
+    dependencies=[Depends(RateLimiter(times=100, seconds=60))],
 )
 async def proxy_gateway(service_name: str, path: str, request: Request):
     """Hàm trung chuyển (Proxy) chuyển tiếp yêu cầu đến các Microservices"""

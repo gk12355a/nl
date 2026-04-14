@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -6,7 +7,11 @@ from bson.objectid import ObjectId
 from typing import List
 import sys
 import os
+import sys
+import os
 import httpx
+import cloudinary
+import cloudinary.uploader
 from pydantic_settings import BaseSettings
 
 from models import ReportCreate, ReportResponse, VoteCreate
@@ -17,6 +22,9 @@ from common.database.mongo import connect_to_mongo, close_mongo_connection, get_
 
 class ServiceSettings(BaseSettings):
     WEBSOCKET_GATEWAY_URL: str = "http://localhost:8003"
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     class Config:
         env_file = os.path.join(os.path.dirname(__file__), "../../.env")
@@ -35,6 +43,15 @@ async def lifespan(app: FastAPI):
     await db["reports"].create_index([("location", "2dsphere")])
     print("Da tao Geo Index (2dsphere) cho bang reports.")
 
+    # Configure Cloudinary
+    if svc_settings.CLOUDINARY_CLOUD_NAME and svc_settings.CLOUDINARY_CLOUD_NAME != "my_cloud_name":
+        cloudinary.config(
+            cloud_name=svc_settings.CLOUDINARY_CLOUD_NAME,
+            api_key=svc_settings.CLOUDINARY_API_KEY,
+            api_secret=svc_settings.CLOUDINARY_API_SECRET
+        )
+        print("Đã config Cloudinary API.")
+
     yield
     print("Dang tat Report Service...")
     await close_mongo_connection()
@@ -44,6 +61,14 @@ app = FastAPI(
     title="Report Service",
     description="Dich vu quan ly bao cao ngap lut",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, set to proper origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -104,6 +129,19 @@ async def process_image_validation(report_id: str, image_url: str):
         except Exception as e:
             print(f"[{report_id}] Loi khi goi AI Service: {e}")
 
+@app.post("/reports/upload")
+async def upload_image(file: UploadFile = File(...)):
+    if not svc_settings.CLOUDINARY_CLOUD_NAME or svc_settings.CLOUDINARY_CLOUD_NAME == "my_cloud_name":
+        import asyncio
+        await asyncio.sleep(1.2)
+        return {"image_url": "https://picsum.photos/500/300?random=backend_mock"}
+        
+    try:
+        contents = await file.read()
+        response = cloudinary.uploader.upload(contents, resource_type="image")
+        return {"image_url": response.get("secure_url")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi Upload Cloudinary: {str(e)}")
 
 @app.post("/reports", response_model=ReportResponse, status_code=201)
 async def create_report(report: ReportCreate, background_tasks: BackgroundTasks):
@@ -150,12 +188,17 @@ async def get_nearby_reports(
     lat: float = Query(..., description="Vi do (Latitude)"),
     lng: float = Query(..., description="Kinh do (Longitude)"),
     radius_km: float = Query(10.0, description="Ban kinh tim kiem (km)"),
+    hours_active: int = Query(24, description="Chi lay bot cao trong X gio qua"),
 ):
     try:
+        from datetime import timedelta
         db = get_db()
         radius_meters = radius_km * 1000
+        
+        time_threshold = datetime.now(timezone.utc) - timedelta(hours=hours_active)
 
         query = {
+            "created_at": {"$gte": time_threshold},
             "location": {
                 "$near": {
                     "$geometry": {
