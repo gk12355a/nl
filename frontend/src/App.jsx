@@ -12,6 +12,8 @@ import AuthModal from './components/AuthModal';
 import ReportModal from './components/ReportModal';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import GeoFeedDashboard from './components/GeoFeedDashboard';
+import { FloodHeatmapLayer, FloodZoneLayer, LayerControlPanel } from './components/FloodLayers';
+import NotificationPanel, { useNotifications } from './components/NotificationPanel';
 
 // Fix Default Leaflet icon issue
 let DefaultIcon = L.icon({
@@ -23,14 +25,29 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function App() {
-  const { user, loading: authLoading, login, register, logout } = useAuth();
+  const { user, loading: authLoading, login, register, logout, forgotPassword, resetPassword } = useAuth();
   const { reports, fetchNearbyReports, submitReport, voteReport } = useReports();
   const [isLoginOpen, setLoginOpen] = useState(false);
   const [isReportOpen, setReportOpen] = useState(false);
   const [targetLocation, setTargetLocation] = useState(null);
   const [activeTab, setActiveTab] = useState('map');
-  const [unreadCount, setUnreadCount] = useState(0);
   const [mapCenter, setMapCenter] = useState([16.0544, 108.2022]);
+  const [activeLayers, setActiveLayers] = useState(['markers', 'heatmap', 'zones']);
+
+  const {
+    notifications,
+    unreadCount,
+    isOpen: notifOpen,
+    toggle: toggleNotif,
+    markRead,
+    markAllRead,
+    clearAll: clearNotifs,
+  } = useNotifications(reports);
+
+  const handleNotifLocate = (lat, lng) => {
+    setMapCenter([lat, lng]);
+    setActiveTab('map');
+  };
 
   // Initial load
   useEffect(() => {
@@ -66,6 +83,14 @@ export default function App() {
   const handleFeedClick = (lat, lng) => {
     setMapCenter([lat, lng]);
     setActiveTab('map');
+  };
+
+  const handleLayerToggle = (layerId) => {
+    setActiveLayers(prev =>
+      prev.includes(layerId)
+        ? prev.filter(id => id !== layerId)
+        : [...prev, layerId]
+    );
   };
 
   return (
@@ -132,10 +157,16 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Bell size={18} className="text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => setUnreadCount(0)} />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308]"></span>}
-              </div>
+              <NotificationPanel
+                notifications={notifications}
+                unreadCount={unreadCount}
+                isOpen={notifOpen}
+                onToggle={toggleNotif}
+                onRead={markRead}
+                onReadAll={markAllRead}
+                onClear={clearNotifs}
+                onLocate={handleNotifLocate}
+              />
               <Activity size={18} className="text-green-500" />
             </div>
           </div>
@@ -160,8 +191,19 @@ export default function App() {
 
                 <MapUpdater center={mapCenter} />
                 <MapClickHandler onMapClick={handleMapClick} />
-                
-                {reports.map((rep, idx) => (
+
+                {/* ── Heatmap Layer ── */}
+                {activeLayers.includes('heatmap') && (
+                  <FloodHeatmapLayer reports={reports} />
+                )}
+
+                {/* ── Zone Circles Layer ── */}
+                {activeLayers.includes('zones') && (
+                  <FloodZoneLayer reports={reports} onVote={handleVote} />
+                )}
+
+                {/* ── Marker Layer ── */}
+                {activeLayers.includes('markers') && reports.map((rep, idx) => (
                   <Marker key={rep.id || idx} position={[rep.location.coordinates[1], rep.location.coordinates[0]]}>
                     <Popup className="tactical-popup">
                       <div className="font-sans text-sm p-1 min-w-[200px]">
@@ -174,8 +216,6 @@ export default function App() {
                           <span className="text-yellow-500 uppercase">{rep.flood_level}</span>
                         </div>
                         {rep.image_url && <img src={rep.image_url} alt="Intel" className="mb-3 w-full h-28 object-cover rounded border border-zinc-800" />}
-                        
-                        {/* VOTE METRICS */}
                         <div className="flex items-center justify-between border-t border-zinc-800 pt-2 mt-2">
                            <span className="text-xs text-zinc-500">Net Votes: <span className="text-zinc-300 font-bold">{rep.votes}</span></span>
                            <div className="flex gap-2">
@@ -187,14 +227,19 @@ export default function App() {
                               </button>
                            </div>
                         </div>
-
                       </div>
                     </Popup>
                   </Marker>
                 ))}
               </MapContainer>
 
-              {/* OVERLAY PANEL (Like an Order Book) */}
+              {/* LAYER CONTROL PANEL */}
+              <LayerControlPanel
+                activeLayers={activeLayers}
+                onToggle={handleLayerToggle}
+              />
+
+              {/* OVERLAY PANEL (Live Events Stream) */}
               <div className="absolute top-20 right-6 w-72 bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-xl z-[1000] flex flex-col hidden lg:flex shadow-2xl">
                 <div className="p-4 border-b border-zinc-800">
                   <h3 className="text-xs font-bold text-zinc-400 tracking-widest uppercase">Live Events Stream</h3>
@@ -241,6 +286,8 @@ export default function App() {
         onClose={() => setLoginOpen(false)}
         onLogin={login}
         onRegister={register}
+        onForgotPassword={forgotPassword}
+        onResetPassword={resetPassword}
       />
       <ReportModal
         isOpen={isReportOpen}

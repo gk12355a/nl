@@ -1,5 +1,6 @@
 import os
 import uuid
+import secrets
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -106,6 +107,15 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 # ==========================================
 # 4. FastAPI App & Routes
 # ==========================================
@@ -195,6 +205,75 @@ async def logout(
         token = authorization.split(" ")[1]
         await delete_session(token, redis_db)
     return {"message": "Successfully logged out"}
+
+
+@auth_router.post("/forgot-password")
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Any = Depends(get_mongo_db),
+    redis_db: redis.Redis = Depends(get_redis),
+):
+    """Generate a password reset token (15 min TTL) and return it.
+    In production, this token would be emailed to the user.
+    """
+    user = await db["users"].find_one({"email": request.email})
+    # Always return 200 to prevent email enumeration
+    if not user:
+        logger.info(f"Forgot-password requested for unknown email: {request.email}")
+        return {
+            "message": "If this email exists, a reset link has been sent.",
+            "reset_token": None,
+        }
+
+    reset_token = secrets.token_urlsafe(32)
+    redis_key = f"pwd_reset:{reset_token}"
+    await redis_db.setex(redis_key, 900, str(user["_id"]))  # 15 minutes
+
+    logger.info(f"Password reset token generated for user {user['_id']}")
+    # In production: send email here. For now, return token directly (dev mode).
+    return {
+        "message": "If this email exists, a reset link has been sent.",
+        "reset_token": reset_token,
+        "note": "DEV MODE: token returned directly. Remove in production.",
+    }
+
+
+@auth_router.post("/reset-password")
+async def reset_password(
+    request: ResetPasswordRequest,
+    db: Any = Depends(get_mongo_db),
+    redis_db: redis.Redis = Depends(get_redis),
+):
+    """Validate reset token from Redis and update password in MongoDB."""
+    if len(request.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters",
+        )
+
+    redis_key = f"pwd_reset:{request.token}"
+    user_id = await redis_db.get(redis_key)
+
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token is invalid or has expired",
+        )
+
+    from bson import ObjectId
+
+    new_hashed = f"mock_hash_{request.new_password}"
+    result = await db["users"].update_one(
+        {"_id": ObjectId(user_id)}, {"$set": {"hashed_password": new_hashed}}
+    )
+
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Revoke the reset token immediately after use
+    await redis_db.delete(redis_key)
+    logger.info(f"Password reset successful for user {user_id}")
+    return {"message": "Password has been reset successfully"}
 
 
 app.include_router(auth_router)

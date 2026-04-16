@@ -42,5 +42,15 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, login, register, logout };
+  const forgotPassword = async (email) => {
+    const { data } = await authApi.post('/forgot-password', { email });
+    return data; // { message, reset_token, note }
+  };
+
+  const resetPassword = async (token, newPassword) => {
+    const { data } = await authApi.post('/reset-password', { token, new_password: newPassword });
+    return data; // { message }
+  };
+
+  return { user, loading, login, register, logout, forgotPassword, resetPassword };
 }
