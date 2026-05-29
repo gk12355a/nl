@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bell, X, AlertTriangle, CheckCircle2, Info, Droplets, ChevronRight, Trash2 } from 'lucide-react';
 
 // ─── Notification type config ────────────────────────────────────────────────
@@ -8,28 +9,28 @@ const NOTIF_CONFIG = {
     color: '#ef4444',
     bg: 'rgba(239,68,68,0.08)',
     border: 'rgba(239,68,68,0.2)',
-    label: 'CẢNH BÁO',
+    labelKey: 'notifAlert',
   },
   report: {
     icon: Droplets,
     color: '#eab308',
     bg: 'rgba(234,179,8,0.08)',
     border: 'rgba(234,179,8,0.15)',
-    label: 'BÁO CÁO MỚI',
+    labelKey: 'notifNewReport',
   },
   verified: {
     icon: CheckCircle2,
     color: '#22c55e',
     bg: 'rgba(34,197,94,0.08)',
     border: 'rgba(34,197,94,0.15)',
-    label: 'XÁC NHẬN',
+    labelKey: 'notifVerified',
   },
   info: {
     icon: Info,
     color: '#3b82f6',
     bg: 'rgba(59,130,246,0.08)',
     border: 'rgba(59,130,246,0.15)',
-    label: 'THÔNG TIN',
+    labelKey: 'notifInfo',
   },
 };
 
@@ -39,24 +40,47 @@ function getNotifType(report) {
   return 'report';
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t, lng) {
   const date = new Date(dateStr.endsWith('Z') ? dateStr : `${dateStr}Z`);
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return `${diff}s trước`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m trước`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h trước`;
-  return date.toLocaleDateString('vi-VN');
+  if (diff < 60) return t('timeAgoSeconds', { count: diff });
+  if (diff < 3600) return t('timeAgoMinutes', { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t('timeAgoHours', { count: Math.floor(diff / 3600) });
+  return date.toLocaleDateString(lng === 'vi' ? 'vi-VN' : 'en-US');
 }
 
-function floodLabel(level) {
-  const map = { nhẹ: 'Nhẹ', trung_bình: 'Trung bình', nặng: 'Nặng' };
+function floodLabel(level, t) {
+  const map = {
+    nhẹ: t('levelLow'),
+    trung_bình: t('levelMedium'),
+    nặng: t('levelHigh'),
+    Low: t('levelLow'),
+    Medium: t('levelMedium'),
+    High: t('levelHigh')
+  };
   return map[level] || level;
 }
 
 // ─── Single Notification Item ────────────────────────────────────────────────
 function NotifItem({ notif, onRead, onLocate }) {
+  const { t, i18n } = useTranslation();
   const cfg = NOTIF_CONFIG[notif.type] || NOTIF_CONFIG.info;
   const Icon = cfg.icon;
+
+  const levelText = floodLabel(notif.rawLevel, t);
+  let title = '';
+  let detail = null;
+
+  if (notif.type === 'alert') {
+    title = t('severeFloodingReported');
+    detail = notif.description ? notif.description.slice(0, 80) : t('severityLevel', { level: levelText });
+  } else if (notif.type === 'verified') {
+    title = t('reportVerified');
+    detail = notif.description ? notif.description.slice(0, 80) : t('severityLevel', { level: levelText });
+  } else {
+    title = t('newFloodReport', { level: levelText });
+    detail = notif.description ? notif.description.slice(0, 80) : null;
+  }
 
   return (
     <div
@@ -66,7 +90,7 @@ function NotifItem({ notif, onRead, onLocate }) {
         padding: '12px 14px',
         background: notif.read ? 'transparent' : cfg.bg,
         borderLeft: `3px solid ${notif.read ? 'transparent' : cfg.color}`,
-        borderBottom: '1px solid rgba(39,39,42,0.8)',
+        borderBottom: '1px solid var(--notif-item-border)',
         cursor: 'pointer',
         transition: 'background 0.15s ease',
         position: 'relative',
@@ -95,18 +119,18 @@ function NotifItem({ notif, onRead, onLocate }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 3 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, letterSpacing: 1 }}>
-            {cfg.label}
+            {t(cfg.labelKey)}
           </span>
-          <span style={{ fontSize: 10, color: '#52525b', flexShrink: 0 }}>
-            {timeAgo(notif.time)}
+          <span style={{ fontSize: 10, color: 'var(--zinc-600)', flexShrink: 0 }}>
+            {timeAgo(notif.time, t, i18n.language)}
           </span>
         </div>
-        <p style={{ fontSize: 12.5, color: '#d4d4d8', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>
-          {notif.title}
+        <p style={{ fontSize: 12.5, color: 'var(--zinc-300)', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>
+          {title}
         </p>
-        {notif.detail && (
-          <p style={{ fontSize: 11, color: '#71717a', margin: '4px 0 0', lineHeight: 1.4 }}>
-            {notif.detail}
+        {detail && (
+          <p style={{ fontSize: 11, color: 'var(--zinc-500)', margin: '4px 0 0', lineHeight: 1.4 }}>
+            {detail}
           </p>
         )}
         {/* Locate button */}
@@ -129,7 +153,7 @@ function NotifItem({ notif, onRead, onLocate }) {
             }}
           >
             <ChevronRight size={11} />
-            Xem trên bản đồ
+            {t('viewOnMap')}
           </button>
         )}
       </div>
@@ -164,6 +188,7 @@ export default function NotificationPanel({
   onClear,
   onLocate,
 }) {
+  const { t } = useTranslation();
   const panelRef = useRef(null);
 
   // Close on click outside
@@ -195,11 +220,11 @@ export default function NotificationPanel({
           borderRadius: 8,
           transition: 'background 0.15s',
         }}
-        title="Thông báo"
+        title={t('notificationsTitle')}
       >
         <Bell
           size={18}
-          color={isOpen ? '#eab308' : unreadCount > 0 ? '#e4e4e7' : '#71717a'}
+          color={isOpen ? '#eab308' : unreadCount > 0 ? 'var(--zinc-200)' : 'var(--zinc-500)'}
           style={{ transition: 'color 0.15s' }}
         />
         {unreadCount > 0 && (
@@ -237,11 +262,11 @@ export default function NotificationPanel({
             right: -8,
             width: 360,
             maxHeight: 520,
-            background: 'rgba(9,9,11,0.97)',
+            background: 'var(--panel-bg)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(63,63,70,0.8)',
+            border: '1px solid var(--panel-border)',
             borderRadius: 16,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -256,13 +281,13 @@ export default function NotificationPanel({
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '14px 16px 12px',
-              borderBottom: '1px solid rgba(39,39,42,0.9)',
+              borderBottom: '1px solid var(--notif-item-border)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Bell size={15} color="#eab308" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#f4f4f5', letterSpacing: 0.3 }}>
-                Thông báo
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--zinc-100)', letterSpacing: 0.3 }}>
+                {t('notificationsTitle')}
               </span>
               {unreadCount > 0 && (
                 <span
@@ -276,7 +301,7 @@ export default function NotificationPanel({
                     padding: '1px 7px',
                   }}
                 >
-                  {unreadCount} mới
+                  {t('newNotifications', { count: unreadCount })}
                 </span>
               )}
             </div>
@@ -295,9 +320,9 @@ export default function NotificationPanel({
                     transition: 'color 0.15s',
                     fontWeight: 500,
                   }}
-                  title="Đánh dấu tất cả đã đọc"
+                  title={t('readAll')}
                 >
-                  Đọc tất cả
+                  {t('readAll')}
                 </button>
               )}
               {notifications.length > 0 && (
@@ -309,12 +334,12 @@ export default function NotificationPanel({
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    color: '#52525b',
+                    color: 'var(--zinc-600)',
                     padding: '3px 4px',
                     borderRadius: 4,
                     transition: 'color 0.15s',
                   }}
-                  title="Xóa tất cả"
+                  title={t('clearAll')}
                 >
                   <Trash2 size={13} />
                 </button>
@@ -340,16 +365,16 @@ export default function NotificationPanel({
                     width: 48,
                     height: 48,
                     borderRadius: '50%',
-                    background: 'rgba(39,39,42,0.6)',
+                    background: 'var(--zinc-800)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Bell size={20} color="#3f3f46" />
+                  <Bell size={20} color="var(--zinc-700)" />
                 </div>
-                <p style={{ fontSize: 13, color: '#52525b', margin: 0, textAlign: 'center' }}>
-                  Không có thông báo mới
+                <p style={{ fontSize: 13, color: 'var(--zinc-600)', margin: 0, textAlign: 'center' }}>
+                  {t('noNewNotifications')}
                 </p>
               </div>
             ) : (
@@ -372,12 +397,12 @@ export default function NotificationPanel({
             <div
               style={{
                 padding: '10px 16px',
-                borderTop: '1px solid rgba(39,39,42,0.6)',
+                borderTop: '1px solid var(--notif-item-border)',
                 textAlign: 'center',
               }}
             >
-              <span style={{ fontSize: 11, color: '#52525b' }}>
-                {notifications.length} thông báo • Cập nhật realtime
+              <span style={{ fontSize: 11, color: 'var(--zinc-600)' }}>
+                {t('notifFooter', { count: notifications.length })}
               </span>
             </div>
           )}
@@ -405,27 +430,14 @@ export function useNotifications(reports) {
   // Convert a report → notification object
   const reportToNotif = React.useCallback((rep) => {
     const type = getNotifType(rep);
-    const level = floodLabel(rep.flood_level);
     const loc = rep.location?.coordinates;
-
-    let title, detail;
-    if (type === 'alert') {
-      title = `⚠️ Ngập nghiêm trọng được báo cáo`;
-      detail = rep.description ? rep.description.slice(0, 80) : `Mức độ: ${level}`;
-    } else if (type === 'verified') {
-      title = `✅ Báo cáo đã được xác nhận`;
-      detail = rep.description ? rep.description.slice(0, 80) : `Mức độ: ${level}`;
-    } else {
-      title = `Báo cáo ngập mới — Mức ${level}`;
-      detail = rep.description ? rep.description.slice(0, 80) : null;
-    }
 
     return {
       id: `notif-${rep.id || notifCounter.current++}`,
       reportId: rep.id,
       type,
-      title,
-      detail,
+      rawLevel: rep.flood_level,
+      description: rep.description,
       time: rep.created_at || new Date().toISOString(),
       read: false,
       lat: loc ? loc[1] : null,

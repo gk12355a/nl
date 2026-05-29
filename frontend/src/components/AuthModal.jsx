@@ -116,7 +116,7 @@ export default function AuthModal({
 
   // ── Shared input style ──────────────────────────────────────
   const inputCls =
-    'w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-10 text-white placeholder-zinc-600 focus:outline-none focus:border-yellow-500 transition-colors text-sm';
+    'w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-10 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-yellow-500 transition-colors text-sm';
   const labelCls = 'text-xs font-semibold text-zinc-400 uppercase tracking-wide';
 
   // ── Title map ───────────────────────────────────────────────
@@ -144,7 +144,7 @@ export default function AuthModal({
             )}
             <h2 className="text-xl font-bold text-zinc-100">{titles[view]}</h2>
           </div>
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-50 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -369,7 +369,7 @@ export default function AuthModal({
               </div>
               <button
                 onClick={() => { clearErrors(); setSuccess(false); switchView('reset'); }}
-                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-50 font-semibold rounded-lg transition-colors text-sm"
               >
                 I have a reset token → Set New Password
               </button>

@@ -89,7 +89,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, defaultLocation
           <h2 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
             <Droplet className="text-yellow-500" size={20} /> Submit Threat Intel
           </h2>
-          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-50 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -165,7 +165,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, defaultLocation
               <textarea 
                 value={description}
                 onChange={e=>setDescription(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-yellow-500 transition-colors min-h-[80px]"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-zinc-100 focus:outline-none focus:border-yellow-500 transition-colors min-h-[80px]"
                 placeholder="Tactical details regarding the flood..."
               />
             </div>

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useMemo } from 'react';
-import { useMap, CircleMarker, Popup } from 'react-leaflet';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { useMap, CircleMarker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 
@@ -12,87 +12,6 @@ const LEVEL_CONFIG = {
 
 const getConfig = (level) => LEVEL_CONFIG[level] || LEVEL_CONFIG['nhẹ'];
 
-// ─── Canvas Heatmap Layer ────────────────────────────────────────────────────
-// Pure Leaflet Canvas — no extra packages needed
-export function FloodHeatmapLayer({ reports }) {
-  const map = useMap();
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-
-  const points = useMemo(() =>
-    reports
-      .filter(r => r.location?.coordinates?.length === 2)
-      .map(r => ({
-        lat: r.location.coordinates[1],
-        lng: r.location.coordinates[0],
-        intensity: getConfig(r.flood_level).intensity,
-      })),
-    [reports]
-  );
-
-  useEffect(() => {
-    // Create an overlay using Leaflet's built-in renderer approach
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '400';
-    canvasRef.current = canvas;
-
-    const pane = map.getPane('overlayPane');
-    pane.appendChild(canvas);
-    containerRef.current = pane;
-
-    const render = () => {
-      const size = map.getSize();
-      canvas.width = size.x;
-      canvas.height = size.y;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Reposition canvas to match map position
-      const topLeft = map.containerPointToLayerPoint([0, 0]);
-      L.DomUtil.setPosition(canvas, topLeft);
-
-      points.forEach(({ lat, lng, intensity }) => {
-        const point = map.latLngToContainerPoint([lat, lng]);
-        const zoom = map.getZoom();
-        // Radius grows with zoom
-        const r = Math.max(30, 20 * Math.pow(1.6, zoom - 6)) * (0.6 + intensity * 0.8);
-
-        const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, r);
-        if (intensity >= 0.9) {
-          gradient.addColorStop(0, `rgba(239,68,68,${0.55 * intensity})`);
-          gradient.addColorStop(0.4, `rgba(239,68,68,${0.3 * intensity})`);
-          gradient.addColorStop(1, 'rgba(239,68,68,0)');
-        } else if (intensity >= 0.5) {
-          gradient.addColorStop(0, `rgba(245,158,11,${0.55 * intensity})`);
-          gradient.addColorStop(0.4, `rgba(245,158,11,${0.3 * intensity})`);
-          gradient.addColorStop(1, 'rgba(245,158,11,0)');
-        } else {
-          gradient.addColorStop(0, `rgba(59,130,246,${0.5 * intensity})`);
-          gradient.addColorStop(0.4, `rgba(59,130,246,${0.28 * intensity})`);
-          gradient.addColorStop(1, 'rgba(59,130,246,0)');
-        }
-
-        ctx.fillStyle = gradient;
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillRect(point.x - r, point.y - r, r * 2, r * 2);
-      });
-    };
-
-    render();
-    map.on('moveend zoomend resize', render);
-
-    return () => {
-      map.off('moveend zoomend resize', render);
-      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
-    };
-  }, [map, points]);
-
-  return null;
-}
 
 // ─── Flood Zone Layer (Circle overlays with popup) ───────────────────────────
 export function FloodZoneLayer({ reports, onVote }) {
@@ -136,23 +55,85 @@ function ZonePopup({ rep, cfg, onVote }) {
         <div style={{ color: statusColor, fontSize: 11, textTransform: 'uppercase', marginBottom: 6 }}>
           Trạng thái: {rep.status}
         </div>
-        <div style={{ color: '#d4d4d8', marginBottom: 8 }}>
+        <div style={{ color: 'var(--zinc-300)', marginBottom: 8 }}>
           {rep.description || 'Không có mô tả.'}
         </div>
         {rep.image_url && (
           <img src={rep.image_url} alt="Intel" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 8 }} />
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #27272a', paddingTop: 6 }}>
-          <span style={{ fontSize: 11, color: '#71717a' }}>Votes: <strong style={{ color: '#d4d4d8' }}>{rep.votes}</strong></span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--zinc-800)', paddingTop: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--zinc-500)' }}>Votes: <strong style={{ color: 'var(--zinc-100)' }}>{rep.votes}</strong></span>
           {onVote && (
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => onVote(rep.id, true)} style={{ fontSize: 11, padding: '2px 8px', background: '#18181b', border: '1px solid #3f3f46', borderRadius: 4, color: '#a1a1aa', cursor: 'pointer' }}>✓ Xác nhận</button>
-              <button onClick={() => onVote(rep.id, false)} style={{ fontSize: 11, padding: '2px 8px', background: '#18181b', border: '1px solid #3f3f46', borderRadius: 4, color: '#a1a1aa', cursor: 'pointer' }}>✗ Bác bỏ</button>
+              <button onClick={() => onVote(rep.id, true)} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--zinc-950)', border: '1px solid var(--zinc-800)', borderRadius: 4, color: 'var(--zinc-400)', cursor: 'pointer' }}>✓ Xác nhận</button>
+              <button onClick={() => onVote(rep.id, false)} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--zinc-950)', border: '1px solid var(--zinc-800)', borderRadius: 4, color: 'var(--zinc-400)', cursor: 'pointer' }}>✗ Bác bỏ</button>
             </div>
           )}
         </div>
       </div>
     </Popup>
+  );
+}
+
+
+export function RoutingPathLayer({ routes, selectedRouteIndex }) {
+  if (!routes || routes.length === 0) return null;
+
+  return (
+    <>
+      {routes.map((route, index) => {
+        const isSelected = selectedRouteIndex === index;
+        const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        
+        if (isSelected) {
+          const baseColor = route.isFlooded ? '#ef4444' : '#10b981';
+          return (
+            <React.Fragment key={`selected-${index}`}>
+              {/* Outer glow */}
+              <Polyline
+                positions={coordinates}
+                pathOptions={{
+                  color: baseColor,
+                  weight: 12,
+                  opacity: 0.2,
+                  lineJoin: 'round',
+                  lineCap: 'round',
+                  dashArray: route.isFlooded ? '5, 10' : null
+                }}
+              />
+              {/* Inner core */}
+              <Polyline
+                positions={coordinates}
+                pathOptions={{
+                  color: baseColor,
+                  weight: 5,
+                  opacity: 0.95,
+                  lineJoin: 'round',
+                  lineCap: 'round',
+                  dashArray: route.isFlooded ? '5, 10' : null
+                }}
+              />
+            </React.Fragment>
+          );
+        } else {
+          const baseColor = route.isFlooded ? '#ef4444' : '#3b82f6';
+          return (
+            <Polyline
+              key={`alt-${index}`}
+              positions={coordinates}
+              pathOptions={{
+                color: baseColor,
+                weight: 4,
+                opacity: 0.4,
+                lineJoin: 'round',
+                lineCap: 'round',
+                dashArray: route.isFlooded ? '5, 10' : '2, 5'
+              }}
+            />
+          );
+        }
+      })}
+    </>
   );
 }
 
@@ -164,12 +145,7 @@ const LAYER_OPTIONS = [
     icon: '📍',
     desc: 'Hiển thị marker từng điểm'
   },
-  {
-    id: 'heatmap',
-    label: 'Bản đồ nhiệt',
-    icon: '🌡️',
-    desc: 'Cường độ ngập theo màu'
-  },
+
   {
     id: 'zones',
     label: 'Vùng ngập',
@@ -189,17 +165,17 @@ export function LayerControlPanel({ activeLayers, onToggle }) {
         zIndex: 1200,
         display: 'flex',
         gap: 8,
-        background: 'rgba(9,9,11,0.88)',
+        background: 'var(--panel-bg-alpha)',
         backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(63,63,70,0.8)',
+        border: '1px solid var(--panel-border)',
         borderRadius: 16,
         padding: '10px 14px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
       }}
     >
       {/* Label left */}
-      <div style={{ display: 'flex', alignItems: 'center', paddingRight: 10, borderRight: '1px solid #3f3f46' }}>
-        <span style={{ fontSize: 10, color: '#71717a', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', paddingRight: 10, borderRight: '1px solid var(--zinc-700)' }}>
+        <span style={{ fontSize: 10, color: 'var(--zinc-500)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, whiteSpace: 'nowrap' }}>
           Lớp hiển thị
         </span>
       </div>
@@ -219,11 +195,11 @@ export function LayerControlPanel({ activeLayers, onToggle }) {
               borderRadius: 10,
               border: isActive
                 ? '1px solid rgba(234,179,8,0.6)'
-                : '1px solid rgba(63,63,70,0.5)',
+                : '1px solid var(--panel-border)',
               background: isActive
                 ? 'rgba(234,179,8,0.12)'
-                : 'rgba(24,24,27,0.6)',
-              color: isActive ? '#eab308' : '#71717a',
+                : 'var(--control-btn-bg)',
+              color: isActive ? '#eab308' : 'var(--zinc-500)',
               fontSize: 12,
               fontWeight: isActive ? 700 : 500,
               cursor: 'pointer',
@@ -247,7 +223,7 @@ export function LayerControlPanel({ activeLayers, onToggle }) {
       })}
 
       {/* Legend strip */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10, borderLeft: '1px solid #3f3f46' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 10, borderLeft: '1px solid var(--zinc-700)' }}>
         {[
           { color: '#3b82f6', label: 'Nhẹ' },
           { color: '#f59e0b', label: 'TB' },
@@ -255,7 +231,7 @@ export function LayerControlPanel({ activeLayers, onToggle }) {
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: 10, color: '#71717a' }}>{label}</span>
+            <span style={{ fontSize: 10, color: 'var(--zinc-500)' }}>{label}</span>
           </div>
         ))}
       </div>

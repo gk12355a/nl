@@ -1,11 +1,78 @@
 @import "tailwindcss";
 
+:root {
+  --zinc-50: #fafafa;
+  --zinc-100: #f4f4f5;
+  --zinc-200: #e4e4e7;
+  --zinc-300: #d4d4d8;
+  --zinc-400: #a1a1aa;
+  --zinc-500: #71717a;
+  --zinc-600: #52525b;
+  --zinc-700: #3f3f46;
+  --zinc-800: #27272a;
+  --zinc-900: #18181b;
+  --zinc-950: #09090b;
+
+  --panel-bg: rgba(9, 9, 11, 0.97);
+  --panel-bg-alpha: rgba(9, 9, 11, 0.88);
+  --panel-border: rgba(63, 63, 70, 0.8);
+  --notif-item-border: rgba(39, 39, 42, 0.8);
+  --glass-bg: rgba(24, 24, 27, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --popup-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  --control-btn-bg: rgba(24, 24, 27, 0.6);
+  
+  --bg-color: #09090b;
+  --text-color: #f4f4f5;
+}
+
+:root[data-theme='light'] {
+  --zinc-50: #09090b;
+  --zinc-100: #18181b;
+  --zinc-200: #27272a;
+  --zinc-300: #3f3f46;
+  --zinc-400: #52525b;
+  --zinc-500: #71717a;
+  --zinc-600: #a1a1aa;
+  --zinc-700: #d4d4d8;
+  --zinc-800: #e4e4e7;
+  --zinc-900: #fafafa;
+  --zinc-950: #ffffff;
+
+  --panel-bg: rgba(255, 255, 255, 0.98);
+  --panel-bg-alpha: rgba(255, 255, 255, 0.9);
+  --panel-border: rgba(228, 228, 231, 0.8);
+  --notif-item-border: rgba(228, 228, 231, 0.8);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --popup-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
+  --control-btn-bg: rgba(255, 255, 255, 0.8);
+  
+  --bg-color: #ffffff;
+  --text-color: #18181b;
+}
+
+@theme {
+  --color-zinc-50: var(--zinc-50);
+  --color-zinc-100: var(--zinc-100);
+  --color-zinc-200: var(--zinc-200);
+  --color-zinc-300: var(--zinc-300);
+  --color-zinc-400: var(--zinc-400);
+  --color-zinc-500: var(--zinc-500);
+  --color-zinc-600: var(--zinc-600);
+  --color-zinc-700: var(--zinc-700);
+  --color-zinc-800: var(--zinc-800);
+  --color-zinc-900: var(--zinc-900);
+  --color-zinc-950: var(--zinc-950);
+}
+
 body {
-  background-color: #09090b; /* zinc-950 */
-  color: #f4f4f5; /* zinc-100 */
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Custom Scrollbar */
@@ -14,49 +81,44 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: var(--zinc-950);
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a; /* zinc-800 */
+  background: var(--zinc-800);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46; /* zinc-700 */
+  background: var(--zinc-700);
 }
 
 /* Glass panel */
 .glass-panel {
-  background: rgba(24, 24, 27, 0.75);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Base leaflet overrides for dark tactical look */
+/* Base leaflet overrides */
 .leaflet-container {
-  background: #09090b !important;
+  background: var(--zinc-950) !important;
 }
-
-/* Optional: if you don't use a built-in dark map, you can invert colors:
-.leaflet-layer,
-.leaflet-control-zoom-in,
-.leaflet-control-zoom-out,
-.leaflet-control-attribution {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-} */
 
 /* Popups mapping */
 .leaflet-popup-content-wrapper {
-  background: #18181b !important;
-  border: 1px solid #3f3f46 !important;
+  background: var(--zinc-900) !important;
+  border: 1px solid var(--zinc-700) !important;
   border-radius: 8px !important;
-  color: #f4f4f5 !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+  color: var(--zinc-100) !important;
+  box-shadow: var(--popup-shadow) !important;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .leaflet-popup-tip {
-  background: #18181b !important;
-  border-bottom: 1px solid #3f3f46;
-  border-right: 1px solid #3f3f46;
+  background: var(--zinc-900) !important;
+  border-bottom: 1px solid var(--zinc-700) !important;
+  border-right: 1px solid var(--zinc-700) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 .leaflet-popup-close-button {
-  color: #a1a1aa !important;
+  color: var(--zinc-400) !important;
 }

@@ -1,1 +1,20 @@
 mỗi service là 1 fouder trong repo này
+192.168.23.60
+1. Tạo user admin
+mongosh
+use admin
+db.createUser({
+  user: "admin",
+  pwd: "123456",
+  roles: [ { role: "root", db: "admin" } ]
+})
+2. Bật security trong config
+
+Sửa /etc/mongod.conf thêm:
+
+security:
+  authorization: enabled
+3. Restart
+sudo systemctl restart mongod
+4. Login lại
+mongosh -u admin -p --authenticationDatabase admin

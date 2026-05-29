@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { weatherApi } from '../services/api';
 import { Activity, Droplet, AlertTriangle, ShieldCheck, CloudRain, MapPin } from 'lucide-react';
 
 export default function AnalyticsDashboard({ defaultLocation }) {
+  const { t, i18n } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +23,7 @@ export default function AnalyticsDashboard({ defaultLocation }) {
         });
         if (isMounted) setData(res.data);
       } catch (err) {
-        if (isMounted) setError("Failed to compute target algorithms. Node disconnected.");
+        if (isMounted) setError("failedToCompute");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -55,15 +57,17 @@ export default function AnalyticsDashboard({ defaultLocation }) {
           <div>
             <h1 className="text-2xl font-bold text-zinc-100 uppercase tracking-widest flex items-center gap-3">
               <Activity className="text-yellow-500" size={28} />
-              Tactical Risk Analytics
+              {t('tacticalRiskAnalytics')}
             </h1>
-            <p className="text-sm text-zinc-500 tracking-wide mt-1">Deep-dive predictive analytics and telemetry algorithms.</p>
+            <p className="text-sm text-zinc-500 tracking-wide mt-1">{t('tacticalRiskDesc')}</p>
           </div>
           <div className="text-right flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg">
              <MapPin size={18} className="text-yellow-500" />
              <div>
-               <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Target Coordinates</div>
-               <div className="font-mono text-zinc-300 text-sm">Lat: {coords.lat.toFixed(4)} | Lng: {coords.lng.toFixed(4)}</div>
+               <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">{t('targetCoordinates')}</div>
+               <div className="font-mono text-zinc-300 text-sm">
+                 {t('coordsFormat', { lat: coords.lat.toFixed(4), lng: coords.lng.toFixed(4) })}
+               </div>
              </div>
           </div>
         </header>
@@ -71,11 +75,11 @@ export default function AnalyticsDashboard({ defaultLocation }) {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <div className="w-12 h-12 border-4 border-zinc-800 border-t-yellow-500 rounded-full animate-spin"></div>
-            <div className="text-zinc-500 uppercase tracking-widest font-mono text-sm animate-pulse">Running Predictions...</div>
+            <div className="text-zinc-500 uppercase tracking-widest font-mono text-sm animate-pulse">{t('runningPredictions')}</div>
           </div>
         ) : error ? (
            <div className="p-4 border border-red-500/30 bg-red-500/10 text-red-500 rounded-lg font-mono text-sm max-w-lg mx-auto text-center mt-10">
-              {error}
+              {t(error)}
            </div>
         ) : data ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -83,8 +87,8 @@ export default function AnalyticsDashboard({ defaultLocation }) {
             {/* OVERALL RISK CARD */}
             <div className={`col-span-1 border rounded-xl p-6 flex flex-col items-center justify-center text-center shadow-lg transition-colors duration-500 ${getRiskColor(data.risk_level)}`}>
                {getRiskIcon(data.risk_level)}
-               <h2 className="text-4xl font-black uppercase mt-4 mb-1">{data.risk_level}</h2>
-               <div className="text-xs font-bold tracking-[0.2em] uppercase opacity-70">Threat Level Assessment</div>
+               <h2 className="text-4xl font-black uppercase mt-4 mb-1">{t(`risk_${data.risk_level}`)}</h2>
+               <div className="text-xs font-bold tracking-[0.2em] uppercase opacity-70">{t('threatLevelAssessment')}</div>
             </div>
 
             {/* TELEMETRY METRICS */}
@@ -92,7 +96,7 @@ export default function AnalyticsDashboard({ defaultLocation }) {
                {/* RAIN 1H */}
                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between">
                  <div className="flex items-center justify-between text-zinc-400">
-                   <h3 className="text-xs font-bold uppercase tracking-wider">Precipitation (1H)</h3>
+                   <h3 className="text-xs font-bold uppercase tracking-wider">{t('precipitation1h')}</h3>
                    <CloudRain size={20} className="text-blue-400" />
                  </div>
                  <div className="mt-4 flex items-end gap-2">
@@ -107,12 +111,12 @@ export default function AnalyticsDashboard({ defaultLocation }) {
                {/* NEARBY INTEL */}
                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between">
                  <div className="flex items-center justify-between text-zinc-400">
-                   <h3 className="text-xs font-bold uppercase tracking-wider">Verified Intel Spots</h3>
+                   <h3 className="text-xs font-bold uppercase tracking-wider">{t('verifiedIntelSpots')}</h3>
                    <Droplet size={20} className="text-cyan-400" />
                  </div>
                  <div className="mt-4 flex items-end gap-2">
                    <span className="text-4xl font-mono font-bold text-zinc-100">{data.nearby_reports_count}</span>
-                   <span className="text-zinc-500 mb-1 font-bold">nodes active</span>
+                   <span className="text-zinc-500 mb-1 font-bold">{t('nodesActive', { count: data.nearby_reports_count })}</span>
                  </div>
                  <div className="w-full bg-zinc-800 h-1.5 mt-4 rounded-full overflow-hidden">
                    <div className="bg-cyan-500 h-full w-[40%] animate-pulse"></div>
@@ -123,12 +127,12 @@ export default function AnalyticsDashboard({ defaultLocation }) {
             {/* REASONING ENGINE */}
             <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden shadow-xl mt-4">
                <div className="bg-zinc-800/50 p-4 border-b border-zinc-800 flex items-center justify-between">
-                 <h3 className="text-xs font-bold text-zinc-300 tracking-widest uppercase">AI Classification Reasons</h3>
-                 <span className="text-xs font-mono text-zinc-500">[{new Date(data.calculation_time).toLocaleTimeString()}]</span>
+                 <h3 className="text-xs font-bold text-zinc-300 tracking-widest uppercase">{t('aiClassificationReasons')}</h3>
+                 <span className="text-xs font-mono text-zinc-500">[{new Date(data.calculation_time).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}]</span>
                </div>
                <div className="p-6">
                  {data.reasons.length === 0 ? (
-                    <div className="text-zinc-500 text-sm">No specific triggers detected in the sector.</div>
+                    <div className="text-zinc-500 text-sm">{t('noSpecificTriggers')}</div>
                  ) : (
                    <ul className="space-y-3">
                      {data.reasons.map((r, i) => (

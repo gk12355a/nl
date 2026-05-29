@@ -1,7 +1,22 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivitySquare, Database, MapPin, Hash, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 export default function GeoFeedDashboard({ reports, onRowClick }) {
+  const { t } = useTranslation();
+
+  const getLevelDisplay = (level) => {
+    const map = {
+      'nhẹ': t('level_Low'),
+      'trung_bình': t('level_Medium'),
+      'nặng': t('level_High'),
+      'Low': t('level_Low'),
+      'Medium': t('level_Medium'),
+      'High': t('level_High')
+    };
+    return map[level] || level;
+  };
+
   return (
     <div className="flex-1 overflow-y-auto pt-24 pb-12 px-6 lg:px-10 bg-zinc-950 font-sans">
       <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -11,15 +26,15 @@ export default function GeoFeedDashboard({ reports, onRowClick }) {
           <div>
             <h1 className="text-2xl font-bold text-zinc-100 uppercase tracking-widest flex items-center gap-3">
               <ActivitySquare className="text-yellow-500" size={28} />
-              Raw Geo Feed
+              {t('rawGeoFeed')}
             </h1>
-            <p className="text-sm text-zinc-500 tracking-wide mt-1">Direct chronological pipeline of authenticated node telemetry.</p>
+            <p className="text-sm text-zinc-500 tracking-wide mt-1">{t('geoFeedDesc')}</p>
           </div>
           <div className="hidden md:flex items-center gap-3 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg">
              <Database size={18} className="text-green-500 animate-pulse" />
              <div>
-               <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Sync Status</div>
-               <div className="font-mono text-zinc-300 text-sm">Receiving Live ({reports.length} ops)</div>
+               <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider">{t('syncStatus')}</div>
+               <div className="font-mono text-zinc-300 text-sm">{t('receivingLive', { count: reports.length })}</div>
              </div>
           </div>
         </header>
@@ -30,12 +45,12 @@ export default function GeoFeedDashboard({ reports, onRowClick }) {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-zinc-900/80 border-b border-zinc-800 text-xs uppercase tracking-widest text-zinc-500 font-bold">
-                  <th className="p-4 whitespace-nowrap min-w-[120px]">Timestamp</th>
-                  <th className="p-4 whitespace-nowrap">Report ID</th>
-                  <th className="p-4 whitespace-nowrap">Node Coordinates</th>
-                  <th className="p-4 whitespace-nowrap text-center">Threat Level</th>
-                  <th className="p-4 whitespace-nowrap text-center">Trust Metrics</th>
-                  <th className="p-4 whitespace-nowrap text-right">Status</th>
+                  <th className="p-4 whitespace-nowrap min-w-[120px]">{t('timestampCol')}</th>
+                  <th className="p-4 whitespace-nowrap">{t('reportIdCol')}</th>
+                  <th className="p-4 whitespace-nowrap">{t('nodeCoordsCol')}</th>
+                  <th className="p-4 whitespace-nowrap text-center">{t('threatLevelCol')}</th>
+                  <th className="p-4 whitespace-nowrap text-center">{t('trustMetricsCol')}</th>
+                  <th className="p-4 whitespace-nowrap text-right">{t('statusCol')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
@@ -44,7 +59,7 @@ export default function GeoFeedDashboard({ reports, onRowClick }) {
                     <td colSpan="6" className="p-8 text-center text-zinc-500 text-sm">
                       <div className="flex flex-col items-center gap-3">
                         <ActivitySquare size={32} className="opacity-50" />
-                        <div>No telemetry packages received in the current sector.</div>
+                        <div>{t('noTelemetryPackages')}</div>
                       </div>
                     </td>
                   </tr>
@@ -89,12 +104,12 @@ export default function GeoFeedDashboard({ reports, onRowClick }) {
                         </td>
                         <td className="p-4 text-center">
                           <span className={`font-mono text-xs font-bold uppercase tracking-wider ${levelColor}`}>
-                            {rep.flood_level === 'trung_bình' ? 'Medium' : rep.flood_level === 'nặng' ? 'High' : 'Low'}
+                            {getLevelDisplay(rep.flood_level)}
                           </span>
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex flex-col items-center">
-                            <span className="text-xs font-mono text-zinc-300">{rep.votes} Net Votes</span>
+                            <span className="text-xs font-mono text-zinc-300">{t('netVotes', { count: rep.votes })}</span>
                             <div className="w-16 h-1 mt-1 bg-zinc-800 rounded-full overflow-hidden">
                                <div className={`h-full ${rep.votes > 0 ? 'bg-green-500' : rep.votes < 0 ? 'bg-red-500' : 'bg-zinc-600'}`} style={{ width: `${Math.min(Math.abs(rep.votes) * 10, 100)}%` }}></div>
                             </div>
@@ -103,7 +118,7 @@ export default function GeoFeedDashboard({ reports, onRowClick }) {
                         <td className="p-4 text-right">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-widest ${statusColor}`}>
                             {rep.status === 'verified' ? <CheckCircle size={12} /> : rep.status === 'rejected' ? <XCircle size={12} /> : <ActivitySquare size={12} />}
-                            {rep.status}
+                            {t(`status_${rep.status}`)}
                           </span>
                         </td>
                       </tr>
