@@ -208,6 +208,7 @@ async def get_nearby_reports(
         time_threshold = datetime.now(timezone.utc) - timedelta(hours=hours_active)
 
         query = {
+            "status": {"$ne": "rejected"},
             "created_at": {"$gte": time_threshold},
             "location": {
                 "$near": {
@@ -225,6 +226,36 @@ async def get_nearby_reports(
 
         for rep in reports:
             rep["id"] = str(rep.pop("_id"))
+
+        # Gia lap thiet bi IoT HN01 gui tin hieu ngap lut cuc cao tai Ha Noi
+        from math import radians, cos, sin, asin, sqrt
+
+        def haversine(lon1, lat1, lon2, lat2):
+            lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+            dlon = lon2 - lon1
+            dlat = lat2 - lat1
+            a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+            c = 2 * asin(sqrt(a))
+            r = 6371  # Ban kinh Trai Dat (km)
+            return c * r
+
+        dist_to_hanoi = haversine(lng, lat, 105.8542, 21.0285)
+        if dist_to_hanoi <= radius_km:
+            mock_iot_report = {
+                "id": "mock_iot_hanoi_sensor_01",
+                "location": {"type": "Point", "coordinates": [105.8542, 21.0285]},
+                "image_url": "https://file3.qdnd.vn/data/images/0/2020/08/17/tuanson/6%201.jpg?dpi=150&mode=crop&anchor=topcenter&quality=100&w=500",
+                "flood_level": "nặng",
+                "description": "🚨 [CẢNH BÁO IoT #HN01] Cảm biến đo được mực nước dâng cực cao tại Hà Nội do mưa bão lớn 85mm/h!",
+                "reported_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(timezone.utc),
+                "trust_score": 100.0,
+                "status": "verified",
+                "votes": 5,
+            }
+            # Kiem tra tranh duplicate neu da co
+            if not any(r.get("id") == "mock_iot_hanoi_sensor_01" for r in reports):
+                reports.append(mock_iot_report)
 
         return reports
 

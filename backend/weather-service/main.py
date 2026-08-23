@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Query
 import httpx
 import os
 from datetime import datetime
+
+# pyrefly: ignore [missing-import]
 from pydantic_settings import BaseSettings
 
 
@@ -38,12 +40,15 @@ async def get_weather(
         not settings.OPENWEATHER_API_KEY
         or settings.OPENWEATHER_API_KEY == "dien_api_key_cua_ban_vao_day"
     ):
+        # Kiem tra neu toa do nam trong vung Ha Noi (bounding box)
+        is_hanoi = (20.95 <= lat <= 21.10) and (105.75 <= lng <= 105.90)
         return {
             "status": "mock",
-            "message": "Dang su dung du lieu gia lap",
-            "temperature_c": 26.5,
-            "weather_main": "Rain",
-            "rain_1h_mm": 15.5,
+            "message": "Dang su dung du lieu gia lap"
+            + (" (Khu vuc Ha Noi - Ngap Nang)" if is_hanoi else ""),
+            "temperature_c": 22.0 if is_hanoi else 26.5,
+            "weather_main": "Thunderstorm" if is_hanoi else "Rain",
+            "rain_1h_mm": 85.0 if is_hanoi else 15.5,
         }
 
     url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lng}&appid={settings.OPENWEATHER_API_KEY}&units=metric"
@@ -87,14 +92,8 @@ async def predict_flood_risk(
 ):
     try:
         # 1. Lay luong mua (Uu tien Mock Data nhu ban yeu cau)
-        rain_1h_mm = 15.5
-
-        if (
-            settings.OPENWEATHER_API_KEY
-            and settings.OPENWEATHER_API_KEY != "dien_api_key_cua_ban_vao_day"
-        ):
-            weather_data = await get_weather(lat, lng)
-            rain_1h_mm = weather_data.get("rain_1h_mm", 0.0)
+        weather_data = await get_weather(lat, lng)
+        rain_1h_mm = weather_data.get("rain_1h_mm", 0.0)
 
         # 2. Goi Report Service de lay du lieu thuc te tu cong dong
         nearby_reports_count = 0

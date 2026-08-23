@@ -27,13 +27,17 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-function MapUpdater({ center }) {
+function MapUpdater({ center, userLocation }) {
   const map = useMapEvents({});
   useEffect(() => {
-    if (center[0] !== 16.0544) {
+    // Zoom in and fly to if center is the user's GPS location
+    if (userLocation && Math.abs(center[0] - userLocation.lat) < 0.00001 && Math.abs(center[1] - userLocation.lng) < 0.00001) {
       map.flyTo(center, 15, { duration: 1.5 });
+    } else if (center[0] !== 16.0544 || center[1] !== 108.2022) {
+      // Focus on other coordinates (e.g., specific reports) and ensure zoom level is high enough
+      map.flyTo(center, map.getZoom() < 12 ? 15 : map.getZoom(), { duration: 1.5 });
     }
-  }, [center, map]);
+  }, [center, userLocation, map]);
   return null;
 }
 
@@ -79,7 +83,7 @@ export default function LiveMap({
     <div className="flex-1 w-full relative pt-16 z-[10]">
       <MapContainer
         center={mapCenter}
-        zoom={defaultZoom}
+        zoom={userLocation ? 15 : defaultZoom}
         zoomControl={false}
         style={{ height: "100%", width: "100%", background: "var(--zinc-950)" }}
       >
@@ -93,7 +97,7 @@ export default function LiveMap({
         />
         <ZoomControl position="bottomright" />
 
-        <MapUpdater center={mapCenter} />
+        <MapUpdater center={mapCenter} userLocation={userLocation} />
         <MapClickHandler onMapClick={handleMapClick} />
         <MapInvalidator />
 

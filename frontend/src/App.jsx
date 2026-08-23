@@ -225,6 +225,7 @@ export default function App() {
         const intersectedFloodSpots = [];
 
         reports.forEach(rep => {
+          if (rep.status === 'rejected') return;
           if (!rep.location?.coordinates || rep.location.coordinates.length !== 2) return;
           const floodLng = rep.location.coordinates[0];
           const floodLat = rep.location.coordinates[1];
